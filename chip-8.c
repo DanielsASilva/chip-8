@@ -195,14 +195,20 @@ void InstructionDecoder(chip8 *c8, int pc){
         case 0x02:
             printf("call subroutine %x%02x\n", op[0] & 0x0f, op[1]);
             break;
-        case 0x03: //Implement next
-            printf("if v%x != %02x then\n", op[0] & 0x0f, op[1]);
+        case 0x03: //3XNN: Skip the following instruction if the value of register VX equals NN
+            if(c8->V[op[0] & 0x0f] == op[1]){
+                c8->PC +=2;
+            }
             break;        
-        case 0x04: //Implement next
-            printf("if v%x == %02x then\n", op[0] & 0x0f, op[1]);
+        case 0x04: //4XNN: Skip the following instruction if the value of register VX is not equal to NN
+            if(c8->V[op[0] & 0x0f] != op[1]){
+                c8->PC += 2;
+            }
             break;
-        case 0x05: //Implement next
-            printf("if v%x == v%x then\n", op[0] & 0x0f, op[1] & 0xf0);
+        case 0x05: //5XY0: Skip the following instruction if the value of register VX is equal to the value of register VY 
+            if(c8->V[op[0] & 0x0f] == c8->V[op[1] & 0xf0]){
+                c8->PC += 2;
+            }
             break;
         case 0x06: //6XNN: Store number NN in register VX
             c8->V[op[0] & 0x0f] = op[1];
@@ -280,20 +286,20 @@ void InstructionDecoder(chip8 *c8, int pc){
             break;
         case 0x0f:
             switch(op[1]){
-                case 0x07: //Implement next
-                    printf("v%x := delay\n", op[0] & 0x0f);
+                case 0x07: //FX07: Store the current value of the delay timer in register VX
+                    c8->V[op[0] & 0x0f] = c8->delay_timer;
                     break;
                 case 0x0a:
                     printf("v%x := key\n", op[0] & 0x0f);
                     break;
-                case 0x15: //Implement next
-                    printf("delay := v%x\n", op[0] & 0x0f);
+                case 0x15: //FX15: Set the delay timer to the value of register VX
+                    c8->delay_timer = c8->V[op[0] & 0x0f];
                     break;
-                case 0x18: //Implement next
-                    printf("buzzer := v%x\n", op[0] & 0x0f);
+                case 0x18: //FX18: Set the sound timer to the value of register VX
+                    c8->sound_timer = c8->V[op[0] & 0x0f];
                     break;
-                case 0x1e: //Implement next
-                    printf("i += v%x\n", op[0] & 0x0f);
+                case 0x1e: //FX1E: Add the value stored in register VX to register I
+                    c8->I += c8->V[op[0] & 0x0f];
                     break;
                 case 0x29:
                     printf("i += hex v%x\n", op[0] & 0x0f);
