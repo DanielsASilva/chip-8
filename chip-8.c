@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 
 typedef struct{
     uint8_t *ram;
@@ -231,12 +232,26 @@ void InstructionDecoder(chip8 *c8, int pc){
                     c8->V[op[0] & 0x0f] = c8->V[op[0] & 0x0f] ^ c8->V[op[1] & 0xf0];
                     c8->PC += 2;
                     break;
-                case 0x04:
-                    printf("v%x += v%x\n", op[0] & 0x0f, op[1] & 0xf0);
+                case 0x04: //8XY4: Add the value of register VY to register VX
+                           //Set VF to 01 if a borrow occurs
+                           //Set VF to 00 if a carry does not occur
+                    if(c8->V[op[1] & 0xf0] > (0xFF - c8->V[op[0] & 0x0f])){
+                        c8->V[0xf] = 1;
+                    }else{
+                        c8->V[0xf] = 0;
+                    }
+                    c8->V[op[0] & 0x0f] += c8->V[op[1] & 0xf0];
                     c8->PC += 2;
                     break;
-                case 0x05:
-                    printf("v%x -= v%x\n", op[0] & 0x0f, op[1] & 0xf0);
+                case 0x05: //8XY5: Set register VX to the value of VX minus VY
+                           //Set VF to 00 if a borrow occurs
+                           //Set VF to 01 if borrow does not occur
+                    if(c8->V[op[0] & 0x0f] > c8->V[op[1] & 0xf0]){
+                        c8->V[0xf] = 1;
+                    }else{
+                        c8->V[0xf] = 0;
+                    }
+                    c8->v[op[0] & 0x0f] -= c8->V[op[1] & 0xf0];
                     c8->PC += 2;
                     break;
                 case 0x06: //8XY6: Store the value of register VY shifted right one bit in register VX
@@ -245,8 +260,16 @@ void InstructionDecoder(chip8 *c8, int pc){
                     c8->V[op[0] & 0x0f] = c8->V[op[1] & 0xf0] >> 1;
                     c8->PC += 2;
                     break;
-                case 0x07: 
-                    printf("v%x =- v%x\n", op[0] & 0x0f, op[1] & 0xf0);
+                case 0x07:  //8XY7: Set register VX to the value of VY minus VX
+                            //Set VF to 00 if a borrow occurs
+                            //Set VF to 01 if a borrow does not occur
+                    if(c8->V[op[1] & 0xf0] > c8->V[op[0] & 0x0f]){
+                        c8->V[0xf] = 1;
+                    }else{
+                        c8->V[0xf] = 0;
+                    }
+                    c8->v[op[0] & 0x0f] = c8->V[op[1] & 0xf0] - c8->v[op[0] & 0x0f];
+                    c8->PC += 2;
                     break;
                 case 0x0e: //8XYE: Store the value of register VY shifted left one bit in register VX
                            //Set register VF to the most significant bit prior to the shift
@@ -271,8 +294,8 @@ void InstructionDecoder(chip8 *c8, int pc){
         case 0x0b: //BNNN: Jump to address NNN+V0
             c8->PC = ((op[0] << 8 | op[1]) & 0x0fff) + PC->V[0];  
             break;
-        case 0x0c:
-            printf("v%x := random %02x\n",op[0] & 0x0f , op[1]);
+        case 0x0c: //CXNN: Set VX to a random number with a masf of NN
+            c8->V[op[0] & 0x0f] = (rand() % 255) & op[1];
             break;
         case 0x0d:
             printf("sprite v%x v%x %x\n", op[0] & 0x0f, op[1] & 0xf0, op[1] & 0x0f);
@@ -371,6 +394,7 @@ chip8* InitChip8(void){
 }
 
 int main(int argc, char**argv){
+    srand(time(NULL))
     chip8 *c8 = InitChip8();
     
     FILE *fp = fopen(argv[1], "rb");
